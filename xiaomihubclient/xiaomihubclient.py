@@ -235,7 +235,7 @@ class XiaomiHubClientThread(XiaomiHubClient, Thread):
         while self.running:
             ct = time.time()
             if abs(ct - self.last_poll) >= self.poll_interval:
-                self.poll_interval = ct
+                self.last_poll = ct
                 data = self.poll()
                 if data:
                     try:
