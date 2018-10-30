@@ -111,7 +111,7 @@ class XiaomiHubClient:
         self.GATEWAY_TOKEN = resp["token"]
         sids = json.loads(resp["data"])
 
-        _LOGGER.info('Found {0} devices'.format(len(sids)))
+        self.XIAOMI_DEVICES = dict()
 
         xiaomi_device = dict(model='hub', type='hub', sid=self.GATEWAY_SID, short_id=self.GATEWAY_SID, data={})
         self.XIAOMI_DEVICES[self.GATEWAY_SID] = xiaomi_device
@@ -123,14 +123,12 @@ class XiaomiHubClient:
 
             sid = resp["sid"]
             device_type = XIAOMI_HUB_DEVICE_TYPES.get(model) or 'sensor'
-            xiaomi_device = {
-                "model": model,
-                "type": device_type,
-                "sid": sid,
-                "short_id": resp["short_id"],
-                "data": json.loads(resp["data"])}
+            xiaomi_device = dict(model=model, type=device_type, sid=sid, short_id=resp["short_id"],
+                                 data=json.loads(resp["data"]))
 
             self.XIAOMI_DEVICES[sid] = xiaomi_device
+
+        _LOGGER.info('Found {0} devices'.format(len(self.XIAOMI_DEVICES)))
 
     def _send_cmd(self, cmd, rtnCmd):
         return self._send_socket(cmd, rtnCmd, self.GATEWAY_IP, self.GATEWAY_PORT)
@@ -177,25 +175,25 @@ class XiaomiHubClient:
             _LOGGER.error("Cannot connect to Gateway")
             # TODO: reconnect?
 
-    def write_to_hub(self, sid, **values):
-        key = self._get_key()
-        cmd = {
-            "cmd": "write",
-            "sid": sid,
-            "data": dict(key=key, **values)
-        }
-        return self._send_cmd(json.dumps(cmd), "write_ack")
+    # def write_to_hub(self, sid, **values):
+    #     key = self._get_key()
+    #     cmd = {
+    #         "cmd": "write",
+    #         "sid": sid,
+    #         "data": dict(key=key, **values)
+    #     }
+    #     return self._send_cmd(json.dumps(cmd), "write_ack")
 
     def get_from_hub(self, sid):
         cmd = '{ "cmd":"read","sid":"' + sid + '"}'
         return self._send_cmd(cmd, "read_ack")
 
-    def _get_key(self):
-        from Crypto.Cipher import AES
-        IV = bytes(bytearray.fromhex('17996d093d28ddb3ba695a2e6f58562e'))
-        encryptor = AES.new(self.GATEWAY_KEY, AES.MODE_CBC, IV=IV)
-        ciphertext = encryptor.encrypt(self.GATEWAY_TOKEN)
-        return ''.join('{:02x}'.format(x) for x in ciphertext)
+    # def _get_key(self):
+    #     from Crypto.Cipher import AES
+    #     IV = bytes(bytearray.fromhex('17996d093d28ddb3ba695a2e6f58562e'))
+    #     encryptor = AES.new(self.GATEWAY_KEY, AES.MODE_CBC, IV=IV)
+    #     ciphertext = encryptor.encrypt(self.GATEWAY_TOKEN)
+    #     return ''.join('{:02x}'.format(x) for x in ciphertext)
 
     def _create_mcast_socket(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -251,7 +249,7 @@ class XiaomiHubClientThread(XiaomiHubClient, Thread):
                 try:
                     data = self.poll()
                     if data:
-                            self.poll_callback(data)
+                        self.poll_callback(data)
                 except Exception as e:
                     _LOGGER.exception("Exception")
 
