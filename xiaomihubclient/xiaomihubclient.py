@@ -16,6 +16,7 @@ from threading import Thread
 _LOGGER = logging.getLogger("xiaomihubclient")
 
 XIAOMI_HUB_DEVICE_TYPES = {
+    'hub': 'hub',
     'sensor_ht': 'sensor',
     'weather.v1': 'sensor',
     'sensor_wleak.aq1': 'sensor',
@@ -112,6 +113,9 @@ class XiaomiHubClient:
 
         _LOGGER.info('Found {0} devices'.format(len(sids)))
 
+        xiaomi_device = dict(model='hub', type='hub', sid=self.GATEWAY_SID, short_id=self.GATEWAY_SID, data={})
+        self.XIAOMI_DEVICES[self.GATEWAY_SID] = xiaomi_device
+
         for sid in sids:
             cmd = '{"cmd":"read","sid":"' + sid + '"}'
             resp = self._send_cmd(cmd, "read_ack")
@@ -153,7 +157,6 @@ class XiaomiHubClient:
             _socket.settimeout(5)
             _socket.sendto(cmd.encode(), (ip, port))
             _socket.settimeout(5)
-            data = None
             try:
                 data, addr = _socket.recvfrom(1024)
             except socket.timeout:
